@@ -50,7 +50,7 @@ cd dfsetup
    - Downloads and installs UV if not already present
 
 3. **Sets up dotfiles**:
-   - Clones your dotfiles repository to `~/projects/dotfiles`
+   - Clones your dotfiles repository to `~/projects/stow`
    - Uses GNU Stow to symlink all dotfile packages to your home directory
    - Sources `~/.bashrc` if it exists
 
@@ -81,7 +81,7 @@ dotfiles/
 ```
 
 When you run `stow bash`, it will create symlinks in your home directory:
-- `~/.bashrc` → `~/projects/dotfiles/bash/.bashrc`
+- `~/.bashrc` → `~/projects/stow/bash/.bashrc`
 
 ## UV Tools Configuration
 
