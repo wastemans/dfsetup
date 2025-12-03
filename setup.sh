@@ -151,11 +151,13 @@ else
     i curl git stow vim python3-dev
 fi
 
+# Ensure ~/.local/bin is in PATH (where UV and other tools live)
+export PATH="$HOME/.local/bin:$PATH"
+
 # Install UV if not already installed
 if ! command -v uv &> /dev/null; then
   echo "Installing UV..."
   curl -LsSf https://astral.sh/uv/install.sh | sh
-  export PATH="$HOME/.local/bin:$PATH"
 fi
 
 # Create folders
@@ -180,6 +182,9 @@ done
 if [ -f ~/.bashrc ]; then
   source ~/.bashrc
 fi
+
+# Re-ensure ~/.local/bin is in PATH after sourcing bashrc
+export PATH="$HOME/.local/bin:$PATH"
 
 # Install Python tools using UV
 if [ -f ~/.config/uv/tools.txt ]; then
