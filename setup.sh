@@ -131,42 +131,63 @@ if [ -x "$(command -v tldr)" ]; then
 else
   echo "NO TLDR"
 fi
-if [ -x "$(command -v pip-review)" ]; then
+if [ -x "$(command -v uv)" ]; then
   if [ $UID == "0" ]; then
-    read -p "You are pip as root, do you want to proceed?"
-    python -m pip install --upgrade pip
-    pip-review -a
-    pip-chill --no-version |tee /tmp/requirements.txt
+    read -p "You are updating UV tools as root, do you want to proceed?"
+    uv self update
+    uv tool upgrade --all
   else
-    python -m pip install --upgrade pip
-    pip-review -a
-    echo -e "\nCurrent packages:"
-    #pip-chill --no-version |tee /tmp/requirements.txt
-    pipdeptree -fl
+    uv self update
+    uv tool upgrade --all
   fi
 else
-  echo "NO PIP-REVIEW"
+  echo "NO UV"
 fi ; }
 
-udug
+# Install base packages first (needed for the rest of the script)
 if [ -x /bin/xbps-install ]; then
-    i python3-devel python3-pip python3-virtualenv git
+    i curl git stow vim python3-devel
 else
-i python3-dev python3-pip python3-virtualenv git
+    i curl git stow vim python3-dev
 fi
-#Create folders
-mkdir -p ~/projects/{dotfiles,vpy}
-#Create & activate venv
-python3 -m venv ~/projects/vpy
-source ~/projects/vpy/bin/activate
-# Get dotfiles
-pip install dotfiles
-# Fix line 150
-vim ~/projects/vpy/lib/python3.12/site-packages/dotfiles/cli.py
-#Get repo
-git clone https://wastemans@github.com/wastemans/dotfiles ~/projects/dotfiles
-#Setup dotfiles
-cp ~/projects/dotfiles/dfrc ~/.dotfilesrc
-dotfiles --sync --force
-source ~/.bashrc
-pip install -r ~/.pip-master
+
+# Install UV if not already installed
+if ! command -v uv &> /dev/null; then
+  echo "Installing UV..."
+  curl -LsSf https://astral.sh/uv/install.sh | sh
+  export PATH="$HOME/.local/bin:$PATH"
+fi
+
+# Create folders
+mkdir -p ~/projects/dotfiles
+
+# Get dotfiles repo (skip if already exists)
+if [ ! -d ~/projects/dotfiles/.git ]; then
+  git clone https://github.com/wastemans/dotfiles ~/projects/dotfiles
+fi
+
+# Setup dotfiles using GNU Stow
+cd ~/projects/dotfiles
+# Stow all directories (assuming each directory in dotfiles repo is a package)
+# The -t flag sets the target directory (home), and -S performs the stow operation
+for dir in */; do
+  if [ -d "$dir" ]; then
+    stow -t ~ -S "${dir%/}"
+  fi
+done
+
+# Source bashrc if it exists
+if [ -f ~/.bashrc ]; then
+  source ~/.bashrc
+fi
+
+# Install Python tools using UV
+if [ -f ~/.config/uv/tools.txt ]; then
+  echo "Installing UV tools from tools.txt..."
+  while IFS= read -r tool; do
+    [ -n "$tool" ] && uv tool install "$tool"
+  done < ~/.config/uv/tools.txt
+fi
+
+# Run updates/upgrades at the end
+udug
