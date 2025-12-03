@@ -84,10 +84,9 @@ if [ -x /bin/xbps-install ]; then
     sudo vkpurge rm all
   fi
 elif [ -x /data/data/com.termux/files/usr/bin/pkg ]; then
-  pkg update
-  pkg upgrade
-  pkg uninstall "$@"
-  pkg remove --autoremove
+  pkg update -y
+  pkg upgrade -y
+  pkg autoclean
 elif [ -x /bin/apt ]; then
   if [ $UID == "0" ]; then
     apt update
@@ -146,8 +145,13 @@ fi ; }
 
 # Install base packages first (needed for the rest of the script)
 if [ -x /bin/xbps-install ]; then
+    # Void Linux
     i curl git stow vim python3-devel
+elif [ -x /data/data/com.termux/files/usr/bin/pkg ]; then
+    # Termux - python includes dev files, stow available via pkg
+    pkg install curl git stow vim python
 else
+    # Debian/Ubuntu/RHEL
     i curl git stow vim python3-dev
 fi
 
@@ -157,10 +161,7 @@ export PATH="$HOME/.local/bin:$PATH"
 # Install UV if not already installed
 if ! command -v uv &> /dev/null; then
   echo "Installing UV..."
-  if [ -x /bin/xbps-install ]; then
-    # Void Linux - curl installer doesn't support this arch
-    i uv
-  elif [ -x /data/data/com.termux/files/usr/bin/pkg ]; then
+  if [ -x /data/data/com.termux/files/usr/bin/pkg ]; then
     # Termux - curl installer doesn't support this arch
     pkg install uv
   else
@@ -170,15 +171,21 @@ if ! command -v uv &> /dev/null; then
 fi
 
 # Create folders
-mkdir -p ~/projects/dotfiles
+mkdir -p ~/projects/stow
+
+# Create a general-purpose venv
+if [ ! -d ~/projects/venv ]; then
+  echo "Creating venv at ~/projects/venv..."
+  uv venv ~/projects/venv
+fi
 
 # Get dotfiles repo (skip if already exists)
-if [ ! -d ~/projects/dotfiles/.git ]; then
-  git clone https://github.com/wastemans/dotfiles ~/projects/dotfiles
+if [ ! -d ~/projects/stow/.git ]; then
+  git clone https://github.com/wastemans/dotfiles ~/projects/stow
 fi
 
 # Setup dotfiles using GNU Stow
-cd ~/projects/dotfiles
+cd ~/projects/stow || exit 1
 # Stow all directories (assuming each directory in dotfiles repo is a package)
 # The -t flag sets the target directory (home), and -S performs the stow operation
 for dir in */; do
@@ -189,6 +196,7 @@ done
 
 # Source bashrc if it exists
 if [ -f ~/.bashrc ]; then
+  # shellcheck source=/dev/null
   source ~/.bashrc
 fi
 
