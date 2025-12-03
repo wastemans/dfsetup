@@ -157,7 +157,16 @@ export PATH="$HOME/.local/bin:$PATH"
 # Install UV if not already installed
 if ! command -v uv &> /dev/null; then
   echo "Installing UV..."
-  curl -LsSf https://astral.sh/uv/install.sh | sh
+  if [ -x /bin/xbps-install ]; then
+    # Void Linux - curl installer doesn't support this arch
+    i uv
+  elif [ -x /data/data/com.termux/files/usr/bin/pkg ]; then
+    # Termux - curl installer doesn't support this arch
+    pkg install uv
+  else
+    # Debian/Ubuntu/RHEL - use the official installer
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+  fi
 fi
 
 # Create folders
