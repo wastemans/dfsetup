@@ -184,14 +184,25 @@ if [ ! -d ~/projects/stow/.git ]; then
   git clone https://github.com/wastemans/dotfiles ~/projects/stow
 fi
 
-# Setup dotfiles using GNU Stow
+# Setup dotfiles using GNU Stow (like ssync but without push)
 cd ~/projects/stow || exit 1
-# Stow all directories (assuming each directory in dotfiles repo is a package)
-# The -t flag sets the target directory (home), and -S performs the stow operation
-for dir in */; do
-  if [ -d "$dir" ]; then
-    stow -t ~ -S "${dir%/}"
-  fi
+
+# Pull latest changes
+git pull --no-rebase || {
+  echo "Pull failed - you may need to resolve conflicts manually"
+}
+
+# Stow the main dotfiles package
+stow --ignore='^\.config$' -R -d . -t ~ git_dotfiles_home
+
+# Create symlinks for config directories
+for pkg_dir in git_dotfiles_home_configdir/*/; do
+  [ ! -d "$pkg_dir" ] && continue
+  pkg_name=$(basename "$pkg_dir")
+  target="$PWD/git_dotfiles_home_configdir/$pkg_name"
+  link_path=~/.config/"$pkg_name"
+  [ -e "$link_path" ] && rm -rf "$link_path"
+  ln -s "$target" "$link_path"
 done
 
 # Source bashrc if it exists
